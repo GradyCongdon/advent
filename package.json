@@ -1,0 +1,29 @@
+{
+  "name": "advent",
+  "version": "1.0.0",
+  "description": "",
+  "main": "1.js",
+  "dependencies": {
+    "advent-of-code": "^4.0.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GradyCongdon/advent.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/GradyCongdon/advent/issues"
+  },
+  "homepage": "https://github.com/GradyCongdon/advent#readme",
+  "adventConfig": {
+    "year": "2018",
+    "nameTemplate": "day{{num}}.js",
+    "templateFile": "node_modules/advent-of-code/src/templates/day.js"
+  }
+}
