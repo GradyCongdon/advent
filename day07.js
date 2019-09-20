@@ -1,4 +1,5 @@
 'use strict'
+const fs = require('fs');
 
 const exampleInput = `Step C must be finished before step A can begin.
 Step C must be finished before step F can begin.
@@ -10,91 +11,106 @@ Step F must be finished before step E can begin.`;
 
 const exampleOutput = 'CABDFE';
 
+const x = (x) => console.debug(x) && x;
 
 class Steps {
   constructor(done) {
     this.done = [done];
     this.steps = {};
+    this.stepper = {};
   }
 
   push(letter, req) {
     let step = this.steps[letter];
     if (!step) {
-      step = new Step(step);
+      step = new Step(letter);
     }
     step.push(req);
     this.steps[letter] = step;
+    this.stepper = Object.values(this.steps);
   }
 
   next() {
-    const open = this.steps.filter(s => s.isDone(this.done));
-    const nextLetter = this.open.map(s => s.letter).sort((a,b) => a - b)[0];
-    return this.steps[nextLetter];
+    const open = this.stepper.filter(s => !this.done.includes(s.letter) && s.isDone(this.done));
+    console.log(open);
+    const nextLetter = open.map(s => s.letter).sort()[0];
+    const nextStep = this.steps[nextLetter];
+    if (!nextLetter || !nextStep) {
+      this.print();
+      console.log(open);
+      throw new Error(`no next step letter: ${nextLetter} step: ${nextStep}`);
+    }
+    return nextStep;
   }
 
   process(next) {
-    this.done.push(next.getLetter());
+    this.done.push(next.letter);
   }
 
   isDone() {
-    return this.done.length === Object.keys(this.steps).length;
+    const stepsSize = this.stepper.length;
+    if (stepsSize === 0) return false;
+    return this.done.length - 1 === stepsSize;
+  }
+
+  print(msg) {
+    console.log('---',msg,'---');
+    Object.entries(this).forEach(([k,v]) => k.match('steps') ? null : console.log(k,v));
+    console.log('isDone():', this.isDone());
+    console.log('+++',msg,'+++');
   }
 }
 
 class Step {
   constructor(letter) {
     this.letter = letter;
+    this.reqs = [];
   }
   isDone(done) {
     return this.reqs.every(r => done.includes(r));
   }
   push(req) {
-    this.reqs.push(reqs);
+    this.reqs.push(req);
+  }
+
+  print() {
+    console.log(this.letter, this.reqs);
   }
 }
-
-const example = input => {
-  const lines = exampleInput
-    .split("\n");
-
-  const lineRegEx = /Step (.) must be finished before step (.) can begin/;
-  const chunks = lines.map(l => {
-    const [all, first, second] = lineRegEx.exec(l)
-    return [first, second];
-  });
-
-  const steps = new Steps(chunks[0][0]);
-
-  chunks.map(c => {
-    const [f, s] = c;
-    steps.push(f,s);
-  });
-
-  console.log(steps);
-  while (!steps.isDone) {
-    const next = steps.next();
-    steps.process(next);
-  }
-};
-
-const checkExample = () => {
-  const actual = example(exampleInput);
-  if (actual === exampleOutput) {
-    console.log('nice');
-  } else {
-    console.error(`got ${actual} expected ${exampleOutput}`);
-  }
-}
-
-checkExample();
-
 
 // Part 1
 // ======
 
 const part1 = input => {
-  return input
+  const lineRegEx = /Step (.) must be finished before step (.) can begin/;
+  const chunks = input.split('\n').map(l => {
+    const parsed = lineRegEx.exec(l)
+    if (parsed) {
+      const [all, first, second] = parsed;
+      return [first, second];
+    }
+  });
+
+  const steps = new Steps(chunks[0][0]);
+
+  chunks.map(c => {
+    if (c) {
+      const [f, s] = c;
+      steps.push(s,f);
+    }
+  });
+
+  while (!steps.isDone()) {
+    steps.print();
+    const next = steps.next();
+    steps.process(next);
+  }
+  return steps.done.join('');
 }
+
+console.log(part1(fs.readFileSync('7.input', 'utf8')));
+
+//console.log(part1(exampleInput));
 
 // Part 2
 // ======
