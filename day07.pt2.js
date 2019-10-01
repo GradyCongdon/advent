@@ -1,9 +1,19 @@
+const { performance } = require('perf_hooks');
+const fs = require('fs');
+
 const x = (m) => process.stdout.write(m);
+let line = [];
+const lx = (m) => line.push(m);
+const px = () => {
+  console.log(line.join(' '));
+  line = [];
+};
 
 class Steps {
   constructor(workerCount) {
     this.done = [];
     this.available = [];
+    this.working = new Set();
     this.steps = {};
     this.stepper = Object.values(this.steps);
     this.count = 0;
@@ -40,13 +50,16 @@ class Steps {
       const available = s.isAvailable(this.done) && 'available';
       const notDone = !this.done.includes(s.letter) && 'not done';
       const notAlreadyAvailable = !this.available.includes(s.letter) && 'not already available';
-      if (available && notDone && notAlreadyAvailable) {
-        console.log(s.letter, available && notDone && notAlreadyAvailable);
+      const notWorking = !this.working.has(s.letter) && 'not working';
+
+      const reason = available && notDone && notAlreadyAvailable && notWorking;
+      //if (s.letter === 'B') wait(500) && console.log(s); 
+      if (reason) {
         this.available.push(s.letter);
       }
     });
-    if (this.available) console.log(this.available);
-    return this.available.sort()[0];
+    //if (this.available.length) console.log(this.available);
+    return this.available.sort();
   }
 
   complete(letter) {
@@ -56,26 +69,44 @@ class Steps {
   }
 
   tick() {
-    this.count++;
-    x(`${this.count} `);
-    this.workers.forEach(w => {
-      const next = this.next();
+    //x(`  `);
+    //this.workers.forEach((w,i) => x(`${i}${w.letter}  `));
+    //x(`\n${this.count} `);
+    const avail = this.next();
+    const lazy = this.workers.filter(w => !w.working);
+
+
+
+    lazy.forEach((w, i) => {
+      const next = avail.shift();
       if (next) {
-        const lazy = this.workers.find(w => !w.isWorking);
         const nextStep = this.steps[next];
-        lazy.start(nextStep);
+        w.start(nextStep);
+        this.working.add(next);
+        lx(`+${w.letter}`);
       }
-      const done = w.tick();
-      x(`${w.letter} ${(w.step && w.step.count) || 0} `);
-      if (done) this.done.push(w.letter);
-      w.stop();
     });
-    x(`\n`);
+
+    this.workers.forEach((w, i) => {
+      const done = w.tick();
+      if (done) {
+        lx(`!${w.letter}`);
+        this.done.push(w.letter)
+        this.working.delete(w.letter);
+        w.stop();
+      };
+      w.print(i);
+    });
+    //x(`d: ${this.done.length} s:${this.stepper.length} \n`);
+    //this.print();
+    px();
+    this.count++;
   }
 
   print() {
-    console.log(this);
-    this.stepper.forEach(s => console.log(s) || console.log(`avail: ${s.isAvailable(this.done)} done:${s.isDone()}`));
+    //console.log(this);
+    console.log(this.done);
+    this.stepper.forEach(s => console.log(s)); //|| console.log(`avail: ${s.isAvailable(this.done)} done:${s.isDone()}`));
   }
 }
 
@@ -83,11 +114,12 @@ class Worker {
   constructor() {
     this.working = false;
     this.step;
-    this.letter = '.';
+    this.letter = '_';
   }
   start(step) {
     this.step = step;
     this.letter = step.letter;
+    this.working = true;
   }
   tick() {
     if (!this.step) return;
@@ -96,7 +128,10 @@ class Worker {
   stop() {
     this.working = false;
     this.step = null;
-    this.letter = '.';
+    this.letter = '_';
+  }
+  print(i) {
+    x(`${i}${this.letter}${(this.step && this.step.count) || 0} `);
   }
 }
   
@@ -107,20 +142,36 @@ class Step {
     this.letter = letter;
     this.reqs = [];
     this.count = letters(letter);
+    this.done = null;
   }
   add(req) {
     this.reqs.push(req);
   }
   isAvailable(done) {
-    return !this.isDone() && (this.reqs.length === 0 ||  this.reqs.every(r => done.includes(r)));
+    const notDone = !this.isDone() && 'not done';
+    const noReqs = this.reqs.length === 0 && 'no reqs';
+    const allDone = this.reqs.every(r => done.includes(r)) && 'all req done ' + this.reqs.join(',');
+    const reason = notDone && ( noReqs || allDone);
+    //if (reason) console.log(this.letter, reason);
+    this.available = reason;
+    return reason
   }
   isDone() {
-    return this.count === 0; 
+    if (this.count < 0 ) throw new Error('neg step');
+    const done = this.count === 0; 
+    this.done = done;
+    return done;
   }
   tick() {
     this.count = this.count - 1;
     return this.isDone();
   }
+}
+
+function wait(ms) {
+  const start = performance.now();
+  while(performance.now() - start < ms){};
+  return true;
 }
 
 
@@ -143,18 +194,17 @@ const run = (file) => {
       steps.add(letter, requirement)
     }
   });
-  steps.print();
+  //steps.print();
 
   while(!steps.isDone()) {
     steps.tick();
   }
-
+  console.log(steps.count);
   return steps.done.join('');
 }
 
 
-const fs = require('fs');
-const file = fs.readFileSync('7.example', 'utf8');
+const file = fs.readFileSync('7.input', 'utf8');
 const order = run(file);
 console.log(order);
 
