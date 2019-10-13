@@ -20,7 +20,7 @@ const makeLetter = (l, pre) => {
   };
 }
 
-const Steps = function() {
+const Stepper = function() {
   this.add = function (letter, pre) {
 
     if (!this.down[letter]) {
@@ -35,30 +35,33 @@ const Steps = function() {
       this.up[pre].push(letter);
     }
   };
-  this.up = {};
-  this.down = {};
-  this.done = [];
   this.available = [];
-  this.walk = function() {
-    const char = this.available.pop();
-    this.done.push(char);
-
-    let downs = this.down[char] || [];
-
-    // get upstream reqs, filter those to done
-    const up = downs.flatMap(d => this.up[d]);
-    const next = up.filter(u => this.done.includes(u));
-    console.log(up, next, this.done);
-
-
-    this.available.push(...next);
-    this.available.sort();
-
-    if (this.available.length === 0) return true
-    else return false;
-  };
+  this.done = [];
+  this.steps = {};
 };
-const steps = new Steps();
+
+const Step = function() {
+  this.letter = null;
+  this.up = [];
+  this.down = [];
+  this.walk = function() {
+    this.available.sort((a,b) => a - b);
+    const current = this.available[0];
+    const possibleNexts = this.down[current];
+    const nexts = possibleNexts.filter(p => {
+      const reqs = this.up[p];
+      for (let i = 0; i < reqs.length; i++) {
+        if (this.done.includes(reqs[i])) continue;
+        return false;
+      }
+      return true;
+    });
+    return nexts.sort(n => 
+  }
+  
+
+
+const stepper = new Stepper();
 
 
 for (let i = 0; i < data.length; i++) {
@@ -66,6 +69,7 @@ for (let i = 0; i < data.length; i++) {
   const [_, letter, pre] = /Step (.) must be finished before step (.) can begin\./.exec(line);
   steps.add(letter, pre);
 };
+console.log(steps);
 
 steps.available = ['C'];
 steps.done = [];
