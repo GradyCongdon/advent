@@ -84,58 +84,70 @@ for (let y = 1; y <= size; y++) {
   for (let x = 0; x <= size; x++) {
     const powerLevel = power(x,y);
     col.push(powerLevel);
-    graph(x,y,powerLevel,size);
+    //graph(x,y,p,size);
   }
   grid.push(col);
 }
-
-return 0;
 
 
 let max = 0;
 let mX = 0;
 let mY = 0;
+let mW = 0;
 
-const w = 3;
+let w = 2;
 
-for (let y = 1; y <= size - w; y++) {
-  for (let x = 1; x <= size - w; x++) {
-
-    let score = 0;
-
-    for (let dy = 0; dy < w; dy++) {
-      for (let dx = 0; dx < w; dx++) {
-        const yy = y + dy;
-        const xx = x + dx;
-        if (grid[yy]) {
-          let p = grid[yy][xx] || 0
-          score = score + p
+const printer = (w) => {
+  for (let yyy = 1; yyy <= w; yyy++) {
+    for (let xxx = 1; xxx <= w; xxx++) {
+      if (yyy !== w && xxx !== w) {
+        write(' . ');
+      } else {
+        let p = grid[yyy][xxx];
+        score = score + p
+        if (p >= 0) {
+          write(` ${p} `);
+        } else {
+          write(`${p} `);
         }
       }
     }
-
-    if (score >= max) {
-      max = score;
-      mX = x;
-      mY = y;
-      for (let dy = 0; dy < w; dy++) {
-        for (let dx = 0; dx < w; dx++) {
-          const yy = y + dy;
-          const xx = x + dx;
-          if (Number.isNaN(score)) console.log(xx,yy);
-          if (grid[yy]) {
-            let p = grid[yy][xx] || 0
-            write(p.toString().padStart(3, ' '));
-          }
-        }
-        write('\n');
-      }
-      write('\n');
-    }
+    write('\n');
   }
 }
 
-console.log(`${serial} : (${mX}, ${mY}) -> ${max}`);
+y:
+for (let y = 1; y <= size; y++) {
+  for (let x = 1; x <= size; x++) {
+    let score = 0;
+    write(`\n (${x}, ${y}) `);
+    for (w = 1; w <= (size - y); w++) {
+      const next = w+1;
+
+      // calc border
+      // ..1
+      // ..2
+      // 123x2
+      for (let i = 1; i < w; i++) {
+        score = score + grid[next][i];
+        score = score + grid[i][next];
+      }
+
+      score = score - grid[next][next]; // remove 1 corner
+
+      if (score >= max) {
+        max = score;
+        mX = x;
+        mY = y;
+        mW = w;
+      }
+      if (w % 10 === 0) write(`${w} -> ${score} `);
+    } // w
+    write('\n');
+  } // x
+}
+
+console.log(`${serial} : (${mX}, ${mY}, ${mW}) -> ${max}`);
 
 
 
