@@ -4,7 +4,8 @@
   "description": "",
   "main": "1.js",
   "dependencies": {
-    "advent-of-code": "^4.0.3"
+    "advent-of-code": "^4.0.3",
+    "chalk": "^2.4.2"
   },
   "devDependencies": {},
   "scripts": {
